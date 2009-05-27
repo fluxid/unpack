@@ -1,3 +1,4 @@
+#!/bin/env python
 import os.path as path
 import os
 import sys
@@ -66,8 +67,7 @@ def pprint(text, color=1, stderr=False):
         print >>std, star, line
 
 
-def unpack(filepath, destination, createdir):
-    print 'lol'
+def unpack(filepath, destination):
     filename = path.basename(filepath)
 
     if not path.isfile(filepath):
@@ -81,10 +81,7 @@ def unpack(filepath, destination, createdir):
             import tempfile, subprocess
 
             archname = filename[:-len(ext)]
-
-            #cmd2 = cmd + ' \'' + filepath.replace('\\', '\\\\' + '\''
             cmd2 = cmd + (filepath,)
-
             tmp = tempfile.mkdtemp(prefix='unpack_', dir=destination)
             os.chdir(tmp)
 
@@ -92,12 +89,13 @@ def unpack(filepath, destination, createdir):
                 p = subprocess.Popen(cmd2, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
                 pstdout, pstderr = p.communicate()
             except OSError, e:
-                print >>sys.stderr, 'unpack: Error when trying to run `%s`. Exception was: "%s"' % (' '.join(cmd2), e)
+                pprint('Error when trying to unpack %s using %s' % (filename, cmd[0]), 3, True)
                 rmdir(tmp)
                 return
                 
             if (p.returncode):
-                print >>sys.stderr, 'unpack: Error when running `%s`, process returned code %d. Try it yourself to get the actual error.' % (' '.join(cmd2), p.returncode)
+                pprint('Error when unpacking %s, process %s returned status code %d. Below is the output:' % (filename, cmd[0], p.returncode), 3, True)
+                print pstdout
                 recursive_rmdir(tmp)
                 return
 
@@ -111,35 +109,22 @@ def unpack(filepath, destination, createdir):
                 os.rmdir(tmp)
                 pprint('%s -> %s' % (filename, path.basename(dst)))
             else:
-                print >>sys.stderr, 'unpack: No files or directories found in %s' % filename
+                pprint('No files or directories found in %s' % filename, 3, True)
                 os.rmdir(tmp)
 
             return
-    print >>sys.stderr, 'unpack: Unsupported filetype of %s' % filepath
+    pprint('Unsupported filetype of %s' % filename, 3, True)
 
 
 def main():
-    g = True
-    d = True
-    args = True
     sys.argv.pop(0)
 
     if not sys.argv:
         print """unpack-0.1 - universal decompressing script
 Copyright (c) 2009 Tomasz Kowalczyk
 
-Arguments:
-    +g  Turn globbing on (default)
-    -g  Turn globbing off
-    +d  Turn creating directories on (default)
-    -d  Turn creating directories off (unimplemented)
-
-Globbing and creating directories can be turned on and off many times e.g.:
-    unpack -g file1[0-1] -d +g file2* +d file3
-
-Everything after -- will not be treated as argument e.g.:
-    unpack -- -g
-instead of turning globbing off, will try to unpack file -g
+Usage:
+    unpack.py [FILES]
 
 Unpack will create directories in working directory only if archive contains
 two or more directories/files.
@@ -153,36 +138,10 @@ If extracted file already exists, it will get a number e.g.:
     cwd = os.getcwd()
 
     for i in sys.argv:
-        if i == '--':
-            args = False
-            continue
-
-        if args:
-            arg = i.lower()
-            if arg == '+g':
-                g = True
-                continue
-            elif arg == '-g':
-                g = False
-                continue
-            elif arg == '+d':
-                d = True
-                continue
-            elif arg == '-d':
-                d = False
-                continue
-
         i = path.expanduser(i)
         i = path.abspath(i)
         
-        if g:
-            import glob
-            files = glob.glob(i)
-
-            for j in files:
-                unpack(j, cwd, d)
-        else:
-            unpack(i, cwd, d)
+        unpack(i, cwd)
         os.chdir(cwd)
 
 if __name__ == '__main__':
