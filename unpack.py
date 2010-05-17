@@ -41,13 +41,13 @@ def safe_rename(src, dst):
     os.rename(src, dst2)
     return dst2
 
-def recursive_rmdir(dir):
-    for root, dirs, files in os.walk(dir, topdown=False):
+def recursive_rmdir(directory):
+    for root, dirs, files in os.walk(directory, topdown=False):
         for name in files:
             os.remove(path.join(root, name))
         for name in dirs:
             os.rmdir(path.join(root, name))
-    os.rmdir(dir)
+    os.rmdir(directory)
 
 def pprint(text, color=1, stderr=False):
     star = ' *'
@@ -90,7 +90,7 @@ def unpack(filepath, destination):
                 pstdout, pstderr = p.communicate()
             except OSError, e:
                 pprint('Error when trying to unpack %s using %s' % (filename, cmd[0]), 3, True)
-                rmdir(tmp)
+                os.rmdir(tmp)
                 return
                 
             if (p.returncode):
